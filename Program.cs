@@ -16,18 +16,34 @@ namespace SwitchMicMonitorDevice
 
         static void Main(string[] args)
         {
+            MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
+
             if (args.Length == 0)
             {
-                Console.WriteLine("Missing device ID");
+                Console.WriteLine("Usage: {0}.exe \"{1}\" \"{2}\"", System.AppDomain.CurrentDomain.FriendlyName, "{ID of output/mic device}", "{ID of input/speaker device}");
+
+                Console.WriteLine("Output devices:");
+                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active | DeviceState.Disabled | DeviceState.Unplugged))
+                {
+                    Console.WriteLine("{0}\t{1}\t({2})", dev.ID, dev.FriendlyName, dev.State);
+                }
+
+                Console.WriteLine("Input devices:");
+                foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active | DeviceState.Disabled | DeviceState.Unplugged))
+                {
+                    Console.WriteLine("{0}\t{1}\t({2})", dev.ID, dev.FriendlyName, dev.State);
+                }
+
+                enumerator.Dispose();
 
                 return;
             }
+
             string micId = args[0];
 
-            MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
-
             MMDevice device = enumerator.GetDevice(micId);
-            if (device == null) { 
+            if (device == null)
+            {
                 enumerator.Dispose();
 
                 Console.WriteLine("Device {0} not found", micId);
@@ -65,11 +81,12 @@ namespace SwitchMicMonitorDevice
 
                 Marshal.FreeHGlobal(pointer);
 
-                Console.WriteLine("Enabled device monitoring for {0}", device.DeviceFriendlyName);
-                Console.WriteLine("Target device: {0}", dev2.DeviceFriendlyName);
-            } else
+                Console.WriteLine("Enabled device monitoring for {0}", device.FriendlyName);
+                Console.WriteLine("Target device: {0}", dev2.FriendlyName);
+            }
+            else
             {
-                Console.WriteLine("Disabled device monitoring for {0}", device.DeviceFriendlyName);
+                Console.WriteLine("Disabled device monitoring for {0}", device.FriendlyName);
             }
 
             enumerator.Dispose();
