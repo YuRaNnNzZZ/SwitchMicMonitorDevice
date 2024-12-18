@@ -44,9 +44,9 @@ namespace SwitchMicMonitorDevice
             MMDevice device = enumerator.GetDevice(micId);
             if (device == null)
             {
-                enumerator.Dispose();
+                Console.WriteLine("Output device {0} not found", micId);
 
-                Console.WriteLine("Device {0} not found", micId);
+                enumerator.Dispose();
 
                 return;
             }
@@ -63,7 +63,14 @@ namespace SwitchMicMonitorDevice
                 string outDeviceId = args[1];
 
                 MMDevice dev2 = enumerator.GetDevice(outDeviceId);
-                if (dev2 == null) return;
+                if (dev2 == null)
+                {
+                    Console.WriteLine("Input device {0} not found", outDeviceId);
+
+                    enumerator.Dispose();
+
+                    return;
+                }
 
                 store.SetValue(PROP_KEY_MONITORING_ENABLE, PROP_BOOL_ENABLE);
                 store.Commit();
