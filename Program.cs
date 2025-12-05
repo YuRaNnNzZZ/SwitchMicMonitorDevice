@@ -1,5 +1,6 @@
 ﻿using NAudio.CoreAudioApi;
 using NAudio.CoreAudioApi.Interfaces;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace SwitchMicMonitorDevice
@@ -16,11 +17,12 @@ namespace SwitchMicMonitorDevice
 
         static void Main(string[] args)
         {
-            MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
-
             if (args.Length == 0)
             {
-                Console.WriteLine("Usage: {0}.exe \"{1}\" \"{2}\"", System.AppDomain.CurrentDomain.FriendlyName, "{ID of output/mic device}", "{ID of input/speaker device}");
+                Console.WriteLine("Usage: {0}.exe \"{1}\" \"{2}\"", System.AppDomain.CurrentDomain.FriendlyName, "{ID or name of output/mic device}", "{ID or name of input/speaker device}");
+                Console.WriteLine("Running with only output device argument will disable mic monitoring for that device.");
+
+                MMDeviceEnumerator enumerator = new MMDeviceEnumerator();
 
                 Console.WriteLine("Output devices:");
                 foreach (var dev in enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active | DeviceState.Disabled | DeviceState.Unplugged))
@@ -41,12 +43,10 @@ namespace SwitchMicMonitorDevice
 
             string micId = args[0];
 
-            MMDevice device = enumerator.GetDevice(micId);
+            MMDevice device = FindDevice(micId, DataFlow.Capture);
             if (device == null)
             {
                 Console.WriteLine("Output device {0} not found", micId);
-
-                enumerator.Dispose();
 
                 return;
             }
@@ -60,17 +60,17 @@ namespace SwitchMicMonitorDevice
 
             if (args.Length > 1)
             {
-                string outDeviceId = args[1];
+                string outDeviceName = args[1];
 
-                MMDevice dev2 = enumerator.GetDevice(outDeviceId);
+                MMDevice dev2 = FindDevice(outDeviceName, DataFlow.Render);
                 if (dev2 == null)
                 {
-                    Console.WriteLine("Input device {0} not found", outDeviceId);
-
-                    enumerator.Dispose();
+                    Console.WriteLine("Input device {0} not found", outDeviceName);
 
                     return;
                 }
+
+                string outDeviceId = dev2.ID;
 
                 store.SetValue(PROP_KEY_MONITORING_ENABLE, PROP_BOOL_ENABLE);
                 store.Commit();
@@ -95,8 +95,25 @@ namespace SwitchMicMonitorDevice
             {
                 Console.WriteLine("Disabled device monitoring for {0}", device.FriendlyName);
             }
+        }
+
+        private static MMDevice FindDevice(string nameOrID, DataFlow flow = DataFlow.All)
+        {
+            MMDeviceEnumerator enumerator = new();
+
+            foreach (var dev in enumerator.EnumerateAudioEndPoints(flow, DeviceState.Active | DeviceState.Disabled | DeviceState.Unplugged))
+            {
+                if (dev.ID.Equals(nameOrID) || dev.FriendlyName.Contains(nameOrID))
+                {
+                    enumerator.Dispose();
+
+                    return dev;
+                }
+            }
 
             enumerator.Dispose();
+
+            return null;
         }
     }
 }
